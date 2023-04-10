@@ -1,0 +1,10 @@
+[package]
+name = "cube_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+strum = "0.24.1"
+strum_macros = "0.24.3"
+itertools = "0.10.5"
+kiss3d = "0.35.0"
