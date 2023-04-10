@@ -1,9 +1,8 @@
-use crate::color::Color::Orange;
-use crate::cube::Cube;
-use crate::util::RotationDirection::Left;
+use crate::cube_window::CubeWindow;
 
 mod color;
 mod cube;
+mod cube_window;
 mod side;
 mod util;
 
@@ -21,6 +20,6 @@ mod util;
  */
 
 fn main() {
-    //let mut cube_window = CubeWindow::new();
-    //cube_window.render();
+    let mut cube_window = CubeWindow::new();
+    cube_window.render();
 }

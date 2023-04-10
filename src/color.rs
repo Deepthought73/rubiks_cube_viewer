@@ -1,6 +1,7 @@
 use crate::color::Color::*;
-use crate::util::RotationAxis::*;
-use crate::util::{RotationAxis, ROTATION_SPEED};
+use crate::util::RotationDirection::Left;
+use crate::util::{RotationDirection, ROTATION_SPEED};
+use kiss3d::nalgebra::{OVector, Unit, Vector, U3};
 use std::f32::consts::PI;
 use std::fmt::{Debug, Formatter};
 use strum_macros::EnumIter;
@@ -56,30 +57,30 @@ impl Color {
         }
     }
 
-    pub fn rotation_and_angle(self) -> (RotationAxis, f32) {
+    pub fn rotation_and_angle(self) -> (Unit<OVector<f32, U3>>, f32) {
         match self {
-            White => (ZAxis, -0.5 * PI),
-            Yellow => (ZAxis, 0.5 * PI),
-            Red => (ZAxis, 0.0),
-            Orange => (YAxis, PI),
-            Blue => (YAxis, 0.5 * PI),
-            Green => (YAxis, -0.5 * PI),
+            White => (Vector::z_axis(), -0.5 * PI),
+            Yellow => (Vector::z_axis(), 0.5 * PI),
+            Red => (Vector::y_axis(), 0.0),
+            Orange => (Vector::y_axis(), PI),
+            Blue => (Vector::y_axis(), 0.5 * PI),
+            Green => (Vector::y_axis(), -0.5 * PI),
         }
     }
 
-    fn rotation_axis(self) -> RotationAxis {
+    pub fn rotation_axis(self) -> Unit<OVector<f32, U3>> {
         match self {
-            White | Yellow => YAxis,
-            Red | Orange => XAxis,
-            Blue | Green => ZAxis,
+            Red | Orange => Vector::x_axis(),
+            White | Yellow => Vector::y_axis(),
+            Blue | Green => Vector::z_axis(),
         }
     }
 
-    fn rotation_speed(self) -> f32 {
-        match self {
+    pub fn rotation_speed(self, direction: RotationDirection) -> f32 {
+        (match self {
             White | Orange | Blue => -ROTATION_SPEED,
             _ => ROTATION_SPEED,
-        }
+        }) * (if direction == Left { -1.0 } else { 1.0 })
     }
 }
 

@@ -1,10 +1,11 @@
 use crate::util::RotationDirection::*;
 use std::f32::consts::PI;
+use strum_macros::EnumIter;
 
-pub const STEPS_PER_ROTATION: usize = 100;
+pub const STEPS_PER_ROTATION: usize = 20;
 pub const ROTATION_SPEED: f32 = 0.5 * PI / STEPS_PER_ROTATION as f32;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, EnumIter)]
 pub enum RotationDirection {
     Right,
     Left,
@@ -17,11 +18,4 @@ impl RotationDirection {
             Left => 1,
         }
     }
-}
-
-#[derive(Copy, Clone)]
-pub enum RotationAxis {
-    XAxis,
-    YAxis,
-    ZAxis,
 }

@@ -24,33 +24,6 @@ impl Side {
         }
     }
 
-    /*
-        fn build_cubes(color: Color, window: &mut Window) -> [[SceneNode; 3]; 3] {
-            let (r, g, b) = color.rgb();
-            [-1, 0, 1].map(|y| {
-                [-1, 0, 1].map(|z| {
-                    let mut cube = window.add_cube(0.0005, 0.0995, 0.0995);
-                    cube.set_local_translation(Translation3::new(
-                        -0.15,
-                        -0.1 * y as f32,
-                        0.1 * z as f32,
-                    ));
-                    cube.set_lines_width(10.0);
-                    let (rotation_axis, angle) = color.rotation_and_angle();
-                    let rotation_axis = match rotation_axis {
-                        XAxis => Vector::x_axis(),
-                        YAxis => Vector::y_axis(),
-                        ZAxis => Vector::z_axis(),
-                    };
-                    let rotation = UnitQuaternion::from_axis_angle(&rotation_axis, angle);
-                    cube.append_rotation(&rotation);
-                    cube.set_color(r, g, b);
-                    cube
-                })
-            })
-        }
-    */
-
     pub fn rotate(&mut self, direction: RotationDirection) {
         self.rotation_offset = (self.rotation_offset + direction.jump_offset() * 2) % 8;
     }
@@ -72,44 +45,6 @@ impl Side {
     }
 
     /*
-    fn orientate_right(&mut self) {
-        let tmp = self.tiles[1][0];
-        self.tiles[1][0] = self.tiles[2][1];
-        self.tiles[2][1] = self.tiles[1][2];
-        self.tiles[1][2] = self.tiles[0][1];
-        self.tiles[0][1] = tmp;
-
-        let tmp = self.tiles[0][0];
-        self.tiles[0][0] = self.tiles[2][0];
-        self.tiles[2][0] = self.tiles[2][2];
-        self.tiles[2][2] = self.tiles[0][2];
-        self.tiles[0][2] = tmp;
-
-        self.rotation_offset = (self.rotation_offset + 3) % 4;
-        self.top = self.color.neighbor_order()[self.rotation_offset];
-    }
-
-    fn orientate_to(&mut self, new_top: Color) {
-        while self.top != new_top {
-            self.orientate_right()
-        }
-    }
-
-    fn get_top_colors(&self) -> [Color; 3] {
-        self.tiles[0].map(|tile| tile.color)
-    }
-
-    fn set_top_colors(&mut self, row: [Color; 3]) {
-        for (tile, color) in self.tiles[0].iter_mut().zip(row.iter()) {
-            tile.color = *color;
-            if let Some(cubes) = &mut self.cubes {
-                let (i, j) = tile.cube_position;
-                let (r, g, b) = color.rgb();
-                cubes[i][j].set_color(r, g, b);
-            }
-        }
-    }
-
     fn render_top_rotation(&mut self, rotation: &UnitQuaternion<f32>) {
         if let Some(cubes) = &mut self.cubes {
             for tile in self.tiles[0] {
@@ -127,6 +62,12 @@ impl Side {
             }
         }
     }*/
+
+    pub fn normalized_tiles(&self) -> [Color; 8] {
+        let mut ret = self.tiles;
+        ret.rotate_left(self.rotation_offset);
+        ret
+    }
 
     pub fn string_array(&self) -> [String; 3] {
         let sides = self.color.neighbor_order().map(|n| self.get_row(n));
