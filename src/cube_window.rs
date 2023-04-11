@@ -3,11 +3,56 @@ use crate::cube::Cube;
 use crate::util::{RotationDirection, STEPS_PER_ROTATION};
 use kiss3d::camera::ArcBall;
 use kiss3d::light::Light;
-use kiss3d::nalgebra::{Point3, Translation3, UnitQuaternion};
+use kiss3d::nalgebra::{Point3, Translation3, UnitQuaternion, Vector3};
 use kiss3d::scene::SceneNode;
 use kiss3d::window::Window;
 use rand::prelude::SliceRandom;
+use std::path::Path;
 use strum::IntoEnumIterator;
+
+struct Tile {
+    edge: SceneNode,
+    center: SceneNode,
+}
+
+impl Tile {
+    fn new(color: Color, y: i32, z: i32, window: &mut Window) -> Self {
+        let mut edge = window.add_obj(
+            Path::new("res/edge.obj"),
+            Path::new("res"),
+            Vector3::new(0.05, 0.05, 0.05),
+        );
+        let mut center = window.add_obj(
+            Path::new("res/center.obj"),
+            Path::new("res"),
+            Vector3::new(0.05, 0.05, 0.05),
+        );
+
+        let translation = Translation3::new(-0.1, -0.1 * y as f32, 0.1 * z as f32);
+        center.set_local_translation(translation);
+        edge.set_local_translation(translation);
+
+        let (rotation_axis, angle) = color.rotation_and_angle();
+        let rotation = UnitQuaternion::from_axis_angle(&rotation_axis, angle);
+        center.append_rotation(&rotation);
+        edge.append_rotation(&rotation);
+
+        let (r, g, b) = color.rgb();
+        center.set_color(r, g, b);
+
+        Self { edge, center }
+    }
+
+    fn append_rotation(&mut self, rotation: &UnitQuaternion<f32>) {
+        self.edge.append_rotation(rotation);
+        self.center.append_rotation(rotation);
+    }
+
+    fn set_color(&mut self, color: &Color) {
+        let (r, g, b) = color.rgb();
+        self.center.set_color(r, g, b);
+    }
+}
 
 #[derive(Copy, Clone)]
 struct RotationAnimation {
@@ -19,8 +64,8 @@ struct RotationAnimation {
 pub struct CubeWindow {
     window: Window,
     cube: Cube,
-    sides: Vec<[SceneNode; 8]>,
-    centers: Vec<SceneNode>,
+    sides: Vec<[Tile; 8]>,
+    centers: Vec<Tile>,
     rotation_queue: Vec<RotationAnimation>,
 }
 
@@ -28,12 +73,33 @@ impl CubeWindow {
     pub fn new() -> Self {
         let mut window = Window::new("Cube Window");
         window.set_light(Light::StickToCamera);
+        // window.set_background_color(0.7, 0.7, 0.7);
+
+        // let mut w = window.add_cube(1.0, 5.0, 5.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(-2.5, 0.0, 0.0));
+        // let mut w = window.add_cube(1.0, 5.0, 5.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(2.5, 0.0, 0.0));
+        // let mut w = window.add_cube(5.0, 1.0, 5.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(0.0, 2.5, 0.0));
+        // let mut w = window.add_cube(5.0, 1.0, 5.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(0.0, -2.5, 0.0));
+        // let mut w = window.add_cube(5.0, 5.0, 1.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(0.0, 0.0, 2.5));
+        // let mut w = window.add_cube(5.0, 5.0, 1.0);
+        // w.set_color(1.0, 1.0, 1.0);
+        // w.set_local_translation(Translation3::new(0.0, 0.0, -2.5));
+
         let cube = Cube::new();
         let sides = Color::iter()
             .map(|c| Self::build_tiles(c, &mut window))
             .collect();
         let centers = Color::iter()
-            .map(|c| Self::build_tile(c, 0, 0, &mut window))
+            .map(|c| Tile::new(c, 0, 0, &mut window))
             .collect();
 
         let mut rng = rand::thread_rng();
@@ -63,7 +129,7 @@ impl CubeWindow {
         }
     }
 
-    fn build_tiles(color: Color, window: &mut Window) -> [SceneNode; 8] {
+    fn build_tiles(color: Color, window: &mut Window) -> [Tile; 8] {
         [
             (-1, -1),
             (0, -1),
@@ -74,19 +140,7 @@ impl CubeWindow {
             (-1, 1),
             (-1, 0),
         ]
-        .map(|(z, y)| Self::build_tile(color, y, z, window))
-    }
-
-    fn build_tile(color: Color, y: i32, z: i32, window: &mut Window) -> SceneNode {
-        let (r, g, b) = color.rgb();
-        let mut cube = window.add_cube(0.0005, 0.0995, 0.0995);
-        cube.set_local_translation(Translation3::new(-0.15, -0.1 * y as f32, 0.1 * z as f32));
-        // cube.set_lines_width(10.0);
-        let (rotation_axis, angle) = color.rotation_and_angle();
-        let rotation = UnitQuaternion::from_axis_angle(&rotation_axis, angle);
-        cube.append_rotation(&rotation);
-        cube.set_color(r, g, b);
-        cube
+        .map(|(z, y)| Tile::new(color, y, z, window))
     }
 
     fn rotate(&mut self, side: Color, direction: RotationDirection) {
@@ -100,20 +154,19 @@ impl CubeWindow {
     fn synchronize_colors(&mut self, side: Color) {
         let colors = self.cube.side(side).normalized_tiles();
         for (tile, color) in self.sides[side as usize].iter_mut().zip(colors.iter()) {
-            let (r, g, b) = color.rgb();
-            tile.set_color(r, g, b);
+            tile.set_color(color);
         }
     }
 
     pub fn render(&mut self) {
-        self.add_coordinate_system();
-
         let eye = Point3::from_slice(&[-1.0, 0.0, 0.0]);
         let at = Point3::from_slice(&[0.0, 0.0, 0.0]);
         let mut camera = ArcBall::new(eye, at);
 
         while self.window.render_with(Some(&mut camera), None, None) {
             camera.set_at(camera.at() * 0.9);
+
+            camera.set_yaw(camera.yaw() + 0.01);
 
             if let Some(rotation) = self.rotation_queue.first().cloned() {
                 let speed = rotation.side.rotation_speed(rotation.direction);
@@ -148,6 +201,7 @@ impl CubeWindow {
         }
     }
 
+    #[allow(unused)]
     fn add_coordinate_system(&mut self) {
         println!("=========[ Coordinate System ]=========");
         println!("X: Red");
